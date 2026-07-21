@@ -25,7 +25,6 @@ BLUE = (135, 206, 235)
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Flappy Bird")
-pygame.display.set_icon(pygame.image.load(os.path.join(os.path.dirname(__file__), "assets", "bird_mid.png")))
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 48)
 small_font = pygame.font.SysFont(None, 32)
@@ -120,10 +119,8 @@ if all(d is not None for d in _digits_raw):
     DIGIT_IMGS = [scale_to_height(d, 36) for d in _digits_raw]
 
 # Menu art: title logo + custom Start/Leaderboard button images
-TITLE_IMG = scale_to_width(load_image("flappybird.png"), 280)
-GAME_OVER_IMG = scale_to_width(load_image("gameover.png"), 280)
-PLAY_BUTTON_IMG = scale_to_width(load_image("play_button.png"), 180)
-LEADERBOARD_BUTTON_IMG = scale_to_width(load_image("leaderboard_button.png"), 180)
+TITLE_IMG = scale_to_width(load_image("title.png"), 280)
+GAMEOVER_IMG = scale_to_width(load_image("gameover.png"), 280)
 
 # Sound effects
 SND_WING = load_sound("wing.wav")
@@ -327,15 +324,15 @@ def main():
     ground_offset = 0
 
     # Menu buttons (use custom images if available, otherwise drawn rectangles)
-    start_button = Button(WIDTH // 2, 350, 180, 50, "Start", image=PLAY_BUTTON_IMG)
-    leaderboard_button = Button(WIDTH // 2, 450, 180, 50, "Leaderboard", image=LEADERBOARD_BUTTON_IMG)
+    start_button = Button(WIDTH // 2, 350, 180, 50, "Start" )
+    leaderboard_button = Button(WIDTH // 2, 440, 180, 50, "Leaderboard")
 
     # Leaderboard screen button
-    back_button = Button(WIDTH // 2, 450, 180, 50, "Back", image=PLAY_BUTTON_IMG)
+    back_button = Button(WIDTH // 2, HEIGHT - 65, 180, 50, "Back")
 
     # Game over buttons
-    retry_button = Button(WIDTH // 2,350, 180, 50, "Retry", image=PLAY_BUTTON_IMG)
-    leaderboard_button_game_over = Button(WIDTH // 2, 450, 180, 50,"Leaderboard", image=LEADERBOARD_BUTTON_IMG)
+    retry_button = Button(WIDTH // 2, HEIGHT // 2 + 65, 180, 50, "Retry")
+    menu_button = Button(WIDTH // 2, HEIGHT // 2 + 125, 180, 50, "Menu")
 
     def reset_game():
         nonlocal bird, pipes, score
@@ -377,9 +374,9 @@ def main():
                         play_sound(SND_SWOOSH)
                         reset_game()
                         state = STATE_PLAYING
-                    elif leaderboard_button_game_over.is_clicked(mouse_pos):
+                    elif menu_button.is_clicked(mouse_pos):
                         play_sound(SND_SWOOSH)
-                        state = STATE_LEADERBOARD
+                        state = STATE_MENU
 
                 elif state == STATE_LEADERBOARD:
                     if back_button.is_clicked(mouse_pos):
@@ -429,6 +426,7 @@ def main():
             else:
                 draw_text_center("Flappy Bird", font, BLACK, 180)
             start_button.draw()
+            leaderboard_button.draw()
             draw_ground(0)
 
         elif state == STATE_PLAYING:
@@ -443,14 +441,14 @@ def main():
                 pipe.draw()
             draw_ground(ground_offset)
             bird.draw()
-            if GAME_OVER_IMG:
-                game_over_rect = GAME_OVER_IMG.get_rect(center=(WIDTH // 2, HEIGHT // 2 - HEIGHT // 4))
-                screen.blit(GAME_OVER_IMG, game_over_rect)
+            if GAMEOVER_IMG:
+                gameover_rect = GAMEOVER_IMG.get_rect(center=(WIDTH // 2, 180))
+                screen.blit(GAMEOVER_IMG, gameover_rect)
             else:
-                draw_text_center("GAME OVER", font, BLACK, 100)
-            draw_text_center(f"Score: {score}", small_font, BLACK, HEIGHT // 2- HEIGHT // 8 )
+                draw_text_center("Flappy Bird", font, BLACK, 180)
+            draw_text_center(f"Score: {score}", small_font, BLACK, HEIGHT // 2 - 15)
             retry_button.draw()
-            leaderboard_button_game_over.draw()
+            menu_button.draw()
 
         elif state == STATE_LEADERBOARD:
             draw_text_center("Leaderboard", font, BLACK, 80)
