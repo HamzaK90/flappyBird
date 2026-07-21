@@ -32,3 +32,16 @@ PNG was dropped in, which caused two problems once real assets came in:
   them. Fixed by cropping to actual content bounds and scaling with aspect
   ratio preserved. The pipe went further: split into a cap + a tileable body
   strip so it can extend to any length without stretching.
+
+### v3 — Menu, leaderboard, and real button art
+Added a proper front end instead of dropping straight into gameplay:
+
+- Game states: menu → playing → game over → leaderboard
+- Start and Leaderboard buttons on the menu; Retry/Menu on the game-over
+  screen; Back on the leaderboard screen
+- Scores persist to `leaderboard.json` next to the script, capped at the
+  top 5
+- Swapped the plain rectangle buttons for real art: extracted the title
+  logo and the two button graphics from reference images (the button
+  source image had its background scene baked in opaque, so it needed
+  the same flood-fill isolation trick as the bird/pipe fix in v2)
