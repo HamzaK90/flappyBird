@@ -121,6 +121,7 @@ if all(d is not None for d in _digits_raw):
 
 # Menu art: title logo + custom Start/Leaderboard button images
 TITLE_IMG = scale_to_width(load_image("flappybird.png"), 280)
+MESSAGE_IMG = scale_to_width(load_image("message.png"), 280)
 GAME_OVER_IMG = scale_to_width(load_image("gameover.png"), 280)
 PLAY_BUTTON_IMG = scale_to_width(load_image("play_button.png"), 180)
 LEADERBOARD_BUTTON_IMG = scale_to_width(load_image("leaderboard_button.png"), 180)
@@ -192,7 +193,7 @@ class Button:
 
 class Bird:
     def __init__(self):
-        self.x = 80
+        self.x = WIDTH // 2
         self.y = HEIGHT // 2
         self.velocity = 0
         self.radius = 15
@@ -328,7 +329,6 @@ def main():
 
     # Menu buttons (use custom images if available, otherwise drawn rectangles)
     start_button = Button(WIDTH // 2, 350, 180, 50, "Start", image=PLAY_BUTTON_IMG)
-    leaderboard_button = Button(WIDTH // 2, 450, 180, 50, "Leaderboard", image=LEADERBOARD_BUTTON_IMG)
 
     # Leaderboard screen button
     back_button = Button(WIDTH // 2, 450, 180, 50, "Back", image=PLAY_BUTTON_IMG)
@@ -352,6 +352,10 @@ def main():
                 sys.exit()
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                if state == STATE_MENU:
+                        play_sound(SND_SWOOSH)
+                        reset_game()
+                        state = STATE_PLAYING
                 if state == STATE_PLAYING:
                     bird.flap()
                 elif state == STATE_GAME_OVER:
@@ -360,15 +364,10 @@ def main():
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if state == STATE_MENU:
-                    if start_button.is_clicked(mouse_pos):
                         play_sound(SND_SWOOSH)
                         reset_game()
                         state = STATE_PLAYING
-                    elif leaderboard_button.is_clicked(mouse_pos):
-                        play_sound(SND_SWOOSH)
-                        leaderboard = load_leaderboard()
-                        state = STATE_LEADERBOARD
-
+                
                 elif state == STATE_PLAYING:
                     bird.flap()
 
@@ -424,11 +423,13 @@ def main():
 
         if state == STATE_MENU:
             if TITLE_IMG:
-                title_rect = TITLE_IMG.get_rect(center=(WIDTH // 2, 180))
+                title_rect = TITLE_IMG.get_rect(center=(WIDTH // 2, HEIGHT // 4 ))
                 screen.blit(TITLE_IMG, title_rect)
             else:
-                draw_text_center("Flappy Bird", font, BLACK, 180)
-            start_button.draw()
+                draw_text_center("Flappy Bird", font, BLACK, HEIGHT // 4)
+            if MESSAGE_IMG:
+                MESSAGE_rect = MESSAGE_IMG.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+                screen.blit(MESSAGE_IMG, MESSAGE_rect)
             draw_ground(0)
 
         elif state == STATE_PLAYING:
@@ -448,7 +449,7 @@ def main():
                 screen.blit(GAME_OVER_IMG, game_over_rect)
             else:
                 draw_text_center("GAME OVER", font, BLACK, 100)
-            draw_text_center(f"Score: {score}", small_font, BLACK, HEIGHT // 2- HEIGHT // 8 )
+            draw_text_center(f"Score: {score}", small_font, BLACK, HEIGHT // 2 - HEIGHT // 10)
             retry_button.draw()
             leaderboard_button_game_over.draw()
 
