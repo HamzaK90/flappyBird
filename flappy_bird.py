@@ -1,6 +1,7 @@
 import pygame
 import random
 import sys
+import os
 
 pygame.init()
 
@@ -23,6 +24,43 @@ clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 48)
 small_font = pygame.font.SysFont(None, 32)
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSET_SUBFOLDER = "assets"
+ASSET_DIR = os.path.join(SCRIPT_DIR, ASSET_SUBFOLDER)
+
+
+def load_image(filename):
+    """Load an image if it exists, otherwise return None (fallback to shapes)."""
+    path = os.path.join(ASSET_DIR, filename)
+    if not os.path.exists(path):
+        print(f"[warning] missing asset: {path}")
+        return None
+    return pygame.image.load(path).convert_alpha()
+
+
+def scale_to_width(img, target_width):
+    """Scale preserving aspect ratio, driven by width."""
+    if img is None:
+        return None
+    ratio = target_width / img.get_width()
+    target_height = int(img.get_height() * ratio)
+    return pygame.transform.smoothscale(img, (target_width, target_height))
+
+
+# Bird: scale preserving its natural aspect ratio (no stretching/squishing)
+BIRD_IMG = scale_to_width(load_image("bird.png"), 40)
+
+# Pipe: cap (the rim) + a tileable body strip, scaled to PIPE_WIDTH,
+# then the body strip is repeated to reach whatever length each pipe needs
+PIPE_CAP_IMG = scale_to_width(load_image("pipe_cap.png"), PIPE_WIDTH)
+PIPE_BODY_IMG = scale_to_width(load_image("pipe_body.png"), PIPE_WIDTH)
+PIPE_CAP_IMG_FLIPPED = pygame.transform.flip(PIPE_CAP_IMG, False, True) if PIPE_CAP_IMG else None
+
+BG_IMG = None
+_bg_raw = load_image("backGround.png")
+if _bg_raw:
+    BG_IMG = pygame.transform.smoothscale(_bg_raw, (WIDTH, HEIGHT))
+
 
 class Bird:
     def __init__(self):
@@ -39,12 +77,18 @@ class Bird:
         self.y += self.velocity
 
     def draw(self):
-        pygame.draw.circle(screen, YELLOW, (self.x, int(self.y)), self.radius)
-        pygame.draw.circle(screen, BLACK, (self.x, int(self.y)), self.radius, 2)
+        if BIRD_IMG:
+            angle = max(-25, min(90, -self.velocity * 5))
+            rotated = pygame.transform.rotate(BIRD_IMG, angle)
+            rect = rotated.get_rect(center=(self.x, int(self.y)))
+            screen.blit(rotated, rect)
+        else:
+            pygame.draw.circle(screen, YELLOW, (self.x, int(self.y)), self.radius)
+            pygame.draw.circle(screen, BLACK, (self.x, int(self.y)), self.radius, 2)
 
     def get_rect(self):
-        return pygame.Rect(self.x - self.radius, self.y - self.radius,
-                            self.radius * 2, self.radius * 2)
+        return pygame.Rect(self.x - self.radius + 4, self.y - self.radius + 4,
+                            (self.radius - 4) * 2, (self.radius - 4) * 2)
 
 
 class Pipe:
@@ -56,10 +100,32 @@ class Pipe:
     def update(self):
         self.x -= PIPE_SPEED
 
+    def _draw_column(self, top_y, bottom_y, cap_img, cap_at_bottom):
+        cap_h = cap_img.get_height()
+        body_h = PIPE_BODY_IMG.get_height()
+
+        if cap_at_bottom:
+            screen.blit(cap_img, (self.x, bottom_y - cap_h))
+            fill_bottom = bottom_y - cap_h
+            y = fill_bottom
+            while y > top_y:
+                y -= body_h
+                screen.blit(PIPE_BODY_IMG, (self.x, y))
+        else:
+            screen.blit(cap_img, (self.x, top_y))
+            y = top_y + cap_h
+            while y < bottom_y:
+                screen.blit(PIPE_BODY_IMG, (self.x, y))
+                y += body_h
+
     def draw(self):
-        pygame.draw.rect(screen, GREEN, (self.x, 0, PIPE_WIDTH, self.height))
-        pygame.draw.rect(screen, GREEN, (self.x, self.height + PIPE_GAP,
-                                          PIPE_WIDTH, HEIGHT - self.height - PIPE_GAP))
+        if PIPE_CAP_IMG and PIPE_BODY_IMG:
+            self._draw_column(0, self.height, PIPE_CAP_IMG_FLIPPED, cap_at_bottom=True)
+            self._draw_column(self.height + PIPE_GAP, HEIGHT, PIPE_CAP_IMG, cap_at_bottom=False)
+        else:
+            pygame.draw.rect(screen, GREEN, (self.x, 0, PIPE_WIDTH, self.height))
+            pygame.draw.rect(screen, GREEN, (self.x, self.height + PIPE_GAP,
+                                              PIPE_WIDTH, HEIGHT - self.height - PIPE_GAP))
 
     def get_rects(self):
         top = pygame.Rect(self.x, 0, PIPE_WIDTH, self.height)
@@ -69,6 +135,13 @@ class Pipe:
 
     def off_screen(self):
         return self.x + PIPE_WIDTH < 0
+
+
+def draw_background():
+    if BG_IMG:
+        screen.blit(BG_IMG, (0, 0))
+    else:
+        screen.fill(BLUE)
 
 
 def draw_text_center(text, font_obj, color, y):
@@ -129,7 +202,7 @@ def main():
             if bird.y - bird.radius < 0 or bird.y + bird.radius > HEIGHT:
                 game_over = True
 
-        screen.fill(BLUE)
+        draw_background()
         for pipe in pipes:
             pipe.draw()
         bird.draw()
