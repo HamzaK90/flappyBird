@@ -26,12 +26,38 @@ YELLOW = (255, 220, 0)
 BLACK = (0, 0, 0)
 BLUE = (135, 206, 235)
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Resource base: when frozen by PyInstaller the bundle is unpacked to
+# sys._MEIPASS; running from source it's just this file's folder.
+if getattr(sys, "frozen", False):
+    BASE_DIR = sys._MEIPASS
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 ASSET_SUBFOLDER = "assets"  # <-- change this if your folder has a different name
-ASSET_DIR = os.path.join(SCRIPT_DIR, ASSET_SUBFOLDER)
+ASSET_DIR = os.path.join(BASE_DIR, ASSET_SUBFOLDER)
 SPRITE_DIR = os.path.join(ASSET_DIR, "sprites")  # all .png images live here
 SOUND_DIR = os.path.join(ASSET_DIR, "sounds")    # all .wav sounds live here
-LEADERBOARD_PATH = os.path.join(SCRIPT_DIR, "leaderboard.json")
+
+
+def _user_data_dir():
+    """A per-user, writable folder for save data (used by the packaged build)."""
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA") or os.path.expanduser("~")
+    elif sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Application Support")
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    path = os.path.join(base, "FlappyBird")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+# Save the leaderboard next to the script in dev, but in a writable user
+# folder once packaged (the unpacked bundle folder is temporary/read-only).
+if getattr(sys, "frozen", False):
+    LEADERBOARD_PATH = os.path.join(_user_data_dir(), "leaderboard.json")
+else:
+    LEADERBOARD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "leaderboard.json")
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Flappy Bird")
