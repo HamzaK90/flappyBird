@@ -70,9 +70,44 @@ def load_sound(filename):
         return None
 
 
+# Audio toggles (flipped from the start-page buttons)
+SFX_ON = True
+MUSIC_ON = True
+MUSIC_LOADED = False
+
+
 def play_sound(sound):
-    if sound:
+    if sound and SFX_ON:
         sound.play()
+
+
+def toggle_sfx():
+    global SFX_ON
+    SFX_ON = not SFX_ON
+
+
+def start_music():
+    """Begin the looping background track (only if loaded and enabled)."""
+    if MUSIC_LOADED and MUSIC_ON:
+        pygame.mixer.music.play(-1)
+
+
+def set_music(on):
+    global MUSIC_ON
+    MUSIC_ON = on
+    if not MUSIC_LOADED:
+        return
+    if on:
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.unpause()
+        else:
+            pygame.mixer.music.play(-1)
+    else:
+        pygame.mixer.music.pause()
+
+
+def toggle_music():
+    set_music(not MUSIC_ON)
 
 
 def rate_game():
@@ -219,6 +254,21 @@ TITLE_IMG = scale_to_width(load_image("flappybird.png"), 210)
 GET_READY_MSG_IMG = scale_to_width(load_image("getReadyMessage.png"), 240)
 TAP_MSG_IMG = scale_to_width(load_image("tapMessage.png"), 130)
 GAME_OVER_IMG = scale_to_width(load_image("gameover.png"), 220)
+LEADERBOARD_TITLE_IMG = scale_to_width(load_image("leaderboard.png"), 260)
+
+# Game-over score card + medals (places 1-4) + "new best" badge + small digits
+SCORE_CARD_IMG = scale_to_width(load_image("scoreCard.png"), 300)
+MEDAL_IMGS = {
+    1: scale_to_height(load_image("gold.png"), 56),
+    2: scale_to_height(load_image("silver.png"), 56),
+    3: scale_to_height(load_image("bronze.png"), 56),
+    4: scale_to_height(load_image("iron.png"), 56),
+}
+NEW_IMG = scale_to_height(load_image("new.png"), 20)
+DIGIT_SML_IMGS = None
+_sml_raw = [load_image(f"digit_{i}_sml.png") for i in range(10)]
+if all(d is not None for d in _sml_raw):
+    DIGIT_SML_IMGS = [scale_to_height(d, 22) for d in _sml_raw]
 
 # Start-page buttons (larger art, smooth-scaled)
 START_PLAY_BTN_IMG = scale_to_width(load_image("startButton.png"), 165)
@@ -240,12 +290,40 @@ RESUME_BIG_IMG = scale_to_height(load_image("resumeButton.png"), 60)
 PAUSE_OVERLAY = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
 PAUSE_OVERLAY.fill((0, 0, 0, 150))
 
+# Solid black surface reused for the dark fade transition (alpha set per frame)
+FADE_SURFACE = pygame.Surface((WIDTH, HEIGHT))
+FADE_SURFACE.fill((0, 0, 0))
+FADE_SPEED = 20  # alpha change per frame during the fade
+
 # Sound effects
 SND_WING = load_sound("wing.wav")
 SND_POINT = load_sound("point.wav")
 SND_HIT = load_sound("hit.wav")
 SND_DIE = load_sound("die.wav")
 SND_SWOOSH = load_sound("swoosh.wav")
+
+# Music / SFX on-off toggle icons (shown on the start page only)
+MUSIC_ON_IMG = scale_to_height(load_image("musicOnButton.png"), 44)
+MUSIC_OFF_IMG = scale_to_height(load_image("musicOffButton.png"), 44)
+SFX_ON_IMG = scale_to_height(load_image("soundOnButton.png"), 44)
+SFX_OFF_IMG = scale_to_height(load_image("soundOffButton.png"), 44)
+
+# Background music: streamed + looped, independent of the SFX channel.
+# (The provided file is actually MP3 data, so prefer the .mp3 name.)
+MUSIC_CANDIDATES = ["Flappy Bird Theme Song.mp3", "Flappy Bird Theme Song.wav"]
+for _music_name in MUSIC_CANDIDATES:
+    _music_path = os.path.join(SOUND_DIR, _music_name)
+    if not os.path.exists(_music_path):
+        continue
+    try:
+        pygame.mixer.music.load(_music_path)
+        pygame.mixer.music.set_volume(0.4)
+        MUSIC_LOADED = True
+        break
+    except pygame.error as e:
+        print(f"[warning] could not load music {_music_name}: {e}")
+if not MUSIC_LOADED:
+    print("[warning] no playable background music found")
 
 
 # ---------- Leaderboard persistence ----------
@@ -289,16 +367,17 @@ class Button:
         else:
             self.rect = pygame.Rect(x - width // 2, y - height // 2, width, height)
 
-    def draw(self):
+    def draw(self, dy=0):
+        rect = self.rect.move(0, dy)
         if self.image:
-            screen.blit(self.image, self.rect)
+            screen.blit(self.image, rect)
         else:
             mouse_pos = pygame.mouse.get_pos()
-            is_hover = self.rect.collidepoint(mouse_pos)
-            pygame.draw.rect(screen, self.hover_color if is_hover else self.color, self.rect, border_radius=8)
-            pygame.draw.rect(screen, BLACK, self.rect, 2, border_radius=8)
+            is_hover = rect.collidepoint(mouse_pos)
+            pygame.draw.rect(screen, self.hover_color if is_hover else self.color, rect, border_radius=8)
+            pygame.draw.rect(screen, BLACK, rect, 2, border_radius=8)
             text_surf = button_font.render(self.text, True, WHITE)
-            text_rect = text_surf.get_rect(center=self.rect.center)
+            text_rect = text_surf.get_rect(center=rect.center)
             screen.blit(text_surf, text_rect)
 
     def is_clicked(self, pos):
@@ -419,6 +498,16 @@ def ui_text_color():
     return WHITE if THEME_DARK else BLACK
 
 
+def draw_audio_toggles(music_rect, sfx_rect):
+    """Draw the music and SFX on/off icons reflecting their current state."""
+    mimg = MUSIC_ON_IMG if MUSIC_ON else MUSIC_OFF_IMG
+    simg = SFX_ON_IMG if SFX_ON else SFX_OFF_IMG
+    if mimg:
+        screen.blit(mimg, mimg.get_rect(center=music_rect.center))
+    if simg:
+        screen.blit(simg, simg.get_rect(center=sfx_rect.center))
+
+
 def draw_score_sprites(score, y):
     """Draw the score using the sprite digit font, centered horizontally."""
     digits = [DIGIT_IMGS[int(d)] for d in str(score)]
@@ -438,29 +527,100 @@ def draw_score(score, y):
         screen.blit(surf, rect)
 
 
+def draw_sml_number(n, cx, cy):
+    """Draw a number centered at (cx, cy) with the small card digits; returns its width."""
+    if not DIGIT_SML_IMGS:
+        surf = small_font.render(str(n), True, BLACK)
+        screen.blit(surf, surf.get_rect(center=(cx, cy)))
+        return surf.get_width()
+    digits = [DIGIT_SML_IMGS[int(c)] for c in str(n)]
+    total = sum(d.get_width() for d in digits) + (len(digits) - 1) * 2
+    x = cx - total // 2
+    for d in digits:
+        screen.blit(d, (x, cy - d.get_height() // 2))
+        x += d.get_width() + 2
+    return total
+
+
+def draw_score_card(cx, cy, last_score, best_score, rank, is_new):
+    """Game-over card: medal (top-4 finish only), this game's score, and the best score."""
+    if not SCORE_CARD_IMG:
+        draw_text_center(f"Score: {last_score}", small_font, ui_text_color(), cy - 12)
+        draw_text_center(f"Best: {best_score}", small_font, ui_text_color(), cy + 16)
+        return
+    rect = SCORE_CARD_IMG.get_rect(center=(cx, cy))
+    screen.blit(SCORE_CARD_IMG, rect)
+    # medal in the left circle, only when the last game placed in the top 4
+    if 1 <= rank <= 4 and last_score > 0:
+        medal = MEDAL_IMGS.get(rank)
+        if medal:
+            mc = (rect.left + int(0.22 * rect.width), rect.top + int(0.53 * rect.height))
+            screen.blit(medal, medal.get_rect(center=mc))
+    # this game's score (under SCORE) and the best score (under BEST), on the right
+    value_x = rect.left + int(0.80 * rect.width)
+    draw_sml_number(last_score, value_x, rect.top + int(0.35 * rect.height))
+    best_y = rect.top + int(0.71 * rect.height)
+    best_w = draw_sml_number(best_score, value_x, best_y)
+    # "NEW" badge beside the best when the last game set a new record (#1)
+    if is_new and NEW_IMG:
+        screen.blit(NEW_IMG, NEW_IMG.get_rect(midright=(value_x - best_w // 2 - 15, best_y - 27)))
+
+
 # ---------- Leaderboard page ----------
 
 LB_SCORE_TOP = 205    # y-center of the first score row
 LB_SCORE_PITCH = 29   # vertical spacing between rows
 
+# Entrance animation: the base grows, then the title and rows fall from the sky.
+LB_GRASS_START_Y = HEIGHT - GROUND_HEIGHT  # where the ground sits before it grows
+LB_SKY_Y = -40             # off-screen start height for falling items
+LB_GROW_FRAMES = 14        # frames for the base to grow to full height
+LB_TITLE_TARGET_Y = 80     # final y-center of the title
+LB_TITLE_START = 4         # frame the title starts falling
+LB_ROWS_START = 14         # frame the first row starts falling
+LB_ROW_STAGGER = 2         # extra delay per row
+LB_FALL_DUR = 14           # frames each item takes to fall into place
+LB_ANIM_CAP = 240          # cap the animation counter
 
-def draw_leaderboard_ground():
-    """Tall base: the grass strip near the top, plain tan filled down to the bottom."""
+
+def ease_out(p):
+    """Decelerating ease for 0..1 (fast start, soft landing)."""
+    p = 0.0 if p < 0 else (1.0 if p > 1 else p)
+    return 1 - (1 - p) * (1 - p)
+
+
+def fall_y(target_y, start_frame, anim):
+    """Y of an item falling from the sky into target_y over LB_FALL_DUR frames."""
+    p = ease_out((anim - start_frame) / LB_FALL_DUR)
+    return LB_SKY_Y + (target_y - LB_SKY_Y) * p
+
+
+def draw_leaderboard_ground(grass_top_y):
+    """Tall base: the grass strip at grass_top_y, plain tan filled down to the bottom."""
+    top = int(grass_top_y)
     if LB_BASE_IMG:
-        screen.blit(LB_BASE_IMG, (0, LB_GRASS_TOP_Y))
-        base_bottom = LB_GRASS_TOP_Y + LB_BASE_IMG.get_height()
+        screen.blit(LB_BASE_IMG, (0, top))
+        base_bottom = top + LB_BASE_IMG.get_height()
     else:
-        base_bottom = LB_GRASS_TOP_Y
+        base_bottom = top
     if base_bottom < HEIGHT:
         pygame.draw.rect(screen, TAN_COLOR, (0, base_bottom, WIDTH, HEIGHT - base_bottom))
+
+
+def draw_leaderboard_title(cy):
+    """The Leaderboard banner png, or a text fallback if it's missing."""
+    if LEADERBOARD_TITLE_IMG:
+        screen.blit(LEADERBOARD_TITLE_IMG, LEADERBOARD_TITLE_IMG.get_rect(center=(WIDTH // 2, int(cy))))
+    else:
+        draw_text_center("Leaderboard", font, ui_text_color(), int(cy))
 
 
 def draw_leaderboard_row(rank, score, cy):
     """Rank (right-aligned) . score (left-aligned) drawn with the white mid-digit sprites."""
     if not DIGIT_MID_IMGS:
-        draw_text_center(f"{rank}.  {score}", small_font, BLACK, cy)
+        draw_text_center(f"{rank}.  {score}", small_font, BLACK, int(cy))
         return
-    baseline = cy + MID_DIGIT_H // 2  # digits and the dot rest their bottoms here
+    baseline = int(cy) + MID_DIGIT_H // 2  # digits and the dot rest their bottoms here
     rank_right_x, dot_x, score_left_x = 176, 186, 202
     # rank, right-aligned so the dots line up in a column
     x = rank_right_x
@@ -479,6 +639,19 @@ def draw_leaderboard_row(rank, score, cy):
         x += img.get_width() + 2
 
 
+# ---------- Start-page entrance ----------
+
+START_ANIM_FRAMES = 16   # frames for a button to slide up into place
+START_SLIDE_DIST = 320   # how far below its target a button starts
+START_BTN_STAGGER = 3    # per-button delay so they arrive one after another
+
+
+def start_slide(anim, delay):
+    """Vertical offset (px, positive = below target) for a start-page button sliding up."""
+    p = ease_out((anim - delay) / START_ANIM_FRAMES)
+    return int((1 - p) * START_SLIDE_DIST)
+
+
 def main():
     state = STATE_START
     paused = False
@@ -487,12 +660,29 @@ def main():
     score = 0
     leaderboard = load_leaderboard()
     ground_offset = 0
+    lb_anim = 0            # leaderboard entrance-animation frame counter
+    start_anim = 0        # start-page button slide-in frame counter
+    last_rank = 0         # this game's placement (1 = best); 0 = outside the board
+    is_new_best = False   # did this game set a new #1 best?
+    go_anim = 0           # game-over card/buttons slide-in frame counter
+
+    # Dark fade transition (used for start -> get ready)
+    fade_state = None      # None | "out" | "in"
+    fade_alpha = 0
+    fade_target = None     # state to switch to at peak darkness
+    fade_reset = False     # whether to reset_game() at the switch
 
     # Start (home) page buttons:
     #   big PLAY button in the middle, LEADERBOARD + RATE in a row beneath it.
     start_button = Button(WIDTH // 2, 300, 165, 97, "Start", image=START_PLAY_BTN_IMG)
     leaderboard_button = Button(141, 430, 88, 52, "Leaderboard", image=LEADERBOARD_BTN_IMG)
     rate_button = Button(258, 430, 93, 52, "Rate", image=RATE_BTN_IMG)
+
+    # Music / SFX toggles in the top corners of the start page
+    music_rect = pygame.Rect(0, 0, 44, 44)
+    music_rect.center = (34, 40)
+    sfx_rect = pygame.Rect(0, 0, 44, 44)
+    sfx_rect.center = (366, 40)
 
     # Pause / resume live in the same top-left spot (tap-to-play + during play)
     pause_button = Button(38, 38, 44, 44, "Pause", image=PAUSE_BTN_IMG)
@@ -516,6 +706,8 @@ def main():
         score = 0
         set_theme("day")  # every run starts on day; it auto-cycles as you score
 
+    start_music()  # loop the theme from the start (until toggled off)
+
     while True:
         mouse_pos = pygame.mouse.get_pos()
 
@@ -524,11 +716,13 @@ def main():
                 pygame.quit()
                 sys.exit()
 
+            if fade_state is not None:
+                continue  # ignore input while a fade transition is running
+
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 if state == STATE_START:
                     play_sound(SND_SWOOSH)
-                    reset_game()
-                    state = STATE_GET_READY
+                    fade_state, fade_target, fade_reset = "out", STATE_GET_READY, True
                 elif state == STATE_GET_READY and not paused:
                     state = STATE_PLAYING
                     bird.flap()
@@ -539,14 +733,20 @@ def main():
                 if state == STATE_START:
                     if start_button.is_clicked(mouse_pos):
                         play_sound(SND_SWOOSH)
-                        reset_game()
-                        state = STATE_GET_READY
+                        fade_state, fade_target, fade_reset = "out", STATE_GET_READY, True
                     elif rate_button.is_clicked(mouse_pos):
                         play_sound(SND_SWOOSH)
                         rate_game()
                     elif leaderboard_button.is_clicked(mouse_pos):
                         play_sound(SND_SWOOSH)
+                        lb_anim = 0
                         state = STATE_LEADERBOARD
+                    elif music_rect.collidepoint(mouse_pos):
+                        play_sound(SND_SWOOSH)
+                        toggle_music()
+                    elif sfx_rect.collidepoint(mouse_pos):
+                        play_sound(SND_SWOOSH)
+                        toggle_sfx()
 
                 elif state == STATE_GET_READY:
                     if paused:
@@ -557,7 +757,7 @@ def main():
                         elif pause_menu_button.is_clicked(mouse_pos):
                             play_sound(SND_SWOOSH)
                             paused = False
-                            state = STATE_START
+                            fade_state, fade_target, fade_reset = "out", STATE_START, False
                     elif pause_button.is_clicked(mouse_pos):
                         play_sound(SND_SWOOSH)
                         paused = True
@@ -580,8 +780,7 @@ def main():
                 elif state == STATE_GAME_OVER:
                     if ok_button.is_clicked(mouse_pos):
                         play_sound(SND_SWOOSH)
-                        reset_game()
-                        state = STATE_GET_READY
+                        fade_state, fade_target, fade_reset = "out", STATE_GET_READY, True
                     elif share_button.is_clicked(mouse_pos):
                         play_sound(SND_SWOOSH)
                         share_score(score)
@@ -589,7 +788,24 @@ def main():
                 elif state == STATE_LEADERBOARD:
                     if menu_button.is_clicked(mouse_pos):
                         play_sound(SND_SWOOSH)
-                        state = STATE_START
+                        fade_state, fade_target, fade_reset = "out", STATE_START, False
+
+        # ---------- Fade transition ----------
+        if fade_state == "out":
+            fade_alpha += FADE_SPEED
+            if fade_alpha >= 255:
+                fade_alpha = 255
+                if fade_reset:
+                    reset_game()
+                if fade_target == STATE_START:
+                    start_anim = 0  # replay the button slide-in on the start page
+                state = fade_target
+                fade_state = "in"
+        elif fade_state == "in":
+            fade_alpha -= FADE_SPEED
+            if fade_alpha <= 0:
+                fade_alpha = 0
+                fade_state = None
 
         # ---------- Update ----------
         if state == STATE_PLAYING and not paused:
@@ -623,15 +839,19 @@ def main():
             if hit:
                 play_sound(SND_HIT)
                 play_sound(SND_DIE)
+                prev_best = leaderboard[0] if leaderboard else 0
                 leaderboard = save_score(score)
+                last_rank = 1 + sum(1 for s in leaderboard if s > score)
+                is_new_best = score > prev_best
+                go_anim = 0
                 state = STATE_GAME_OVER
 
         # ---------- Draw ----------
         draw_background()
 
         if state == STATE_START:
-            # Title with the yellow bird perched beside it, then the buttons.
-            title_y = 150
+            # Title + the bird beside it hover together (same vertical bob).
+            title_y = int(150 + math.sin(pygame.time.get_ticks() * 0.005) * 6)
             if TITLE_IMG:
                 title_rect = TITLE_IMG.get_rect(midleft=(68, title_y))
                 screen.blit(TITLE_IMG, title_rect)
@@ -646,19 +866,24 @@ def main():
             else:
                 pygame.draw.circle(screen, YELLOW, (bird_x, title_y), 15)
                 pygame.draw.circle(screen, BLACK, (bird_x, title_y), 15, 2)
-            start_button.draw()
-            leaderboard_button.draw()
-            rate_button.draw()
+            # Buttons slide up from the bottom into place when the page opens.
+            start_anim = min(start_anim + 1, START_ANIM_FRAMES + 3 * START_BTN_STAGGER)
+            start_button.draw(start_slide(start_anim, 0))
+            leaderboard_button.draw(start_slide(start_anim, START_BTN_STAGGER))
+            rate_button.draw(start_slide(start_anim, 2 * START_BTN_STAGGER))
+            draw_audio_toggles(music_rect, sfx_rect)
             draw_ground(0)
 
         elif state == STATE_GET_READY:
-            # "Get Ready!" banner on top, tap indicator below (same spot as the
-            # old combined message art).
+            # "Get Ready!" banner on top, a bird to the left of the tap indicator below.
             if GET_READY_MSG_IMG:
                 gr_rect = GET_READY_MSG_IMG.get_rect(center=(WIDTH // 2, 215))
                 screen.blit(GET_READY_MSG_IMG, gr_rect)
             else:
                 draw_text_center("Get Ready!", font, ui_text_color(), 215)
+            if BIRD_FRAMES:
+                gr_frame = BIRD_FRAMES[(pygame.time.get_ticks() // 150) % 3]
+                screen.blit(gr_frame, gr_frame.get_rect(center=(105, 330)))
             if TAP_MSG_IMG:
                 tap_rect = TAP_MSG_IMG.get_rect(center=(WIDTH // 2, 330))
                 screen.blit(TAP_MSG_IMG, tap_rect)
@@ -692,19 +917,35 @@ def main():
                 screen.blit(GAME_OVER_IMG, game_over_rect)
             else:
                 draw_text_center("GAME OVER", font, ui_text_color(), 100)
-            draw_text_center(f"Score: {score}", small_font, ui_text_color(), HEIGHT // 2 - HEIGHT // 10)
-            ok_button.draw()
-            share_button.draw()
+            # Card + buttons slide up from the bottom (staggered).
+            go_anim = min(go_anim + 1, START_ANIM_FRAMES + 3 * START_BTN_STAGGER)
+            best = leaderboard[0] if leaderboard else score
+            draw_score_card(WIDTH // 2, 300 + start_slide(go_anim, 0), score, best, last_rank, is_new_best)
+            ok_button.draw(start_slide(go_anim, 2 * START_BTN_STAGGER))
+            share_button.draw(start_slide(go_anim, 3 * START_BTN_STAGGER))
 
         elif state == STATE_LEADERBOARD:
-            draw_leaderboard_ground()
-            draw_text_center("Leaderboard", font, ui_text_color(), 80)
+            lb_anim = min(lb_anim + 1, LB_ANIM_CAP)
+            # the base grows up to full height...
+            grow = ease_out(lb_anim / LB_GROW_FRAMES)
+            grass_top = LB_GRASS_START_Y + (LB_GRASS_TOP_Y - LB_GRASS_START_Y) * grow
+            draw_leaderboard_ground(grass_top)
+            # ...then the title and score records fall from the sky into the list
+            draw_leaderboard_title(fall_y(LB_TITLE_TARGET_Y, LB_TITLE_START, lb_anim))
             if leaderboard:
                 for i, s in enumerate(leaderboard):
-                    draw_leaderboard_row(i + 1, s, LB_SCORE_TOP + i * LB_SCORE_PITCH)
-            else:
+                    target = LB_SCORE_TOP + i * LB_SCORE_PITCH
+                    cy = fall_y(target, LB_ROWS_START + i * LB_ROW_STAGGER, lb_anim)
+                    draw_leaderboard_row(i + 1, s, cy)
+            elif lb_anim >= LB_ROWS_START:
                 draw_text_center("No scores yet", small_font, BLACK, 300)
-            menu_button.draw()
+            if lb_anim >= LB_GROW_FRAMES:
+                menu_button.draw()
+
+        # Dark fade overlay (drawn last so it covers everything)
+        if fade_alpha > 0:
+            FADE_SURFACE.set_alpha(fade_alpha)
+            screen.blit(FADE_SURFACE, (0, 0))
 
         pygame.display.flip()
         clock.tick(60)
