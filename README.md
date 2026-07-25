@@ -12,6 +12,35 @@ python flappy_bird.py
 
 Space or click to flap.
 
+## Build a standalone desktop app
+
+Package the game into a single executable so players don't need Python or
+Pygame installed — it runs like any normal desktop game.
+
+```
+pip install pyinstaller
+pyinstaller FlappyBird.spec
+```
+
+The build lands in `dist/` (`FlappyBird.exe` on Windows, `FlappyBird` on
+macOS/Linux) with all art and sound bundled inside. Equivalent one-off
+command without the spec file:
+
+```
+pyinstaller --onefile --windowed --name FlappyBird --add-data "assets:assets" flappy_bird.py
+```
+
+(On Windows use `--add-data "assets;assets"` — the path separator is `;`.)
+
+The code detects when it's running as a packaged build: assets load from the
+bundle, and the leaderboard is saved to a per-user folder
+(`%APPDATA%\FlappyBird` on Windows, `~/Library/Application Support/FlappyBird`
+on macOS, `~/.local/share/FlappyBird` on Linux) so scores persist across runs.
+Running from source is unchanged — the leaderboard stays next to the script.
+
+> Build on the OS you're targeting: PyInstaller doesn't cross-compile, so make
+> the Windows `.exe` on Windows, the macOS app on macOS, and so on.
+
 ## Journey
 
 ### v1 — Basic playable prototype
