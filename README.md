@@ -63,5 +63,41 @@ MIT licensed):
 Title and button art from v3 were kept as-is — only the gameplay assets
 were replaced.
 
+### v5 — Front-end rebuild: home page and tap-to-play
+Reworked the flow into a proper front end. States are now
+start → get ready → playing → game over, with the leaderboard reachable
+from the home page:
+
+- Home page with a hovering title, the bird animating beside it, a big
+  Play button, and Leaderboard + Rate buttons
+- Play leads to a "Get Ready" tap-to-play screen (a banner plus a tap
+  indicator with the bird beside it) before the round starts
+- Reworked game-over and leaderboard screens with the new pixel button art
+
+### v6 — Assets organised into subfolders
+Split the flat `assets/` folder into `assets/sprites/` (every PNG) and
+`assets/sounds/` (every WAV); the image and sound loaders were pointed at
+the new locations.
+
+### v7 — Pause, themes, transitions, audio, and a score card
+The big polish pass:
+
+- **Pause/resume** from the tap-to-play screen and mid-game, dimming the
+  scene behind a dark overlay
+- **Leaderboard** expanded to the top 10, drawn on a tall base with sprite
+  digits and its own title art, entering with the base growing while the
+  records drop in from the sky
+- **Auto-cycling themes** — day / dusk / night swap every few points,
+  adding a red bird and red pipes alongside the existing yellow/blue
+- **Screen transitions** — dark fades between screens and slide-in
+  animations for the home-page buttons and the game-over card
+- **Audio toggles** — a looping theme track plus music and SFX on/off
+  buttons on the home page
+- **Game-over score card** — this run's score, the best score, a medal for
+  a top-4 finish, and a "NEW" badge when you set a record. The leaderboard
+  now keeps the top 10 (was 5 in v3)
+
 ## Credits
-Sprites and sounds in v4+: [samuelcust/flappy-bird-assets](https://github.com/samuelcust/flappy-bird-assets) (MIT).
+Gameplay sprites and sounds (v4+): [samuelcust/flappy-bird-assets](https://github.com/samuelcust/flappy-bird-assets) (MIT).
+Later UI art (buttons, medals, score card) and the theme music were added
+during development — check their individual licences before redistributing.
