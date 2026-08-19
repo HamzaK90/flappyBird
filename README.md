@@ -1,7 +1,18 @@
 # Flappy Bird (Python / Pygame)
 
-A Flappy Bird clone built with Pygame, developed incrementally — this repo's
-commit history is the build log.
+A polished Flappy Bird clone built with Pygame — animated sprites, auto-cycling
+day/dusk/night themes, pause, medals, a top-10 leaderboard, and a one-file
+desktop build. Developed incrementally: this repo's commit history is the
+build log.
+
+<p align="center">
+  <img src="screenshots/home.png" width="300" alt="Home page with the title, Play button, and leaderboard, rate, music and SFX controls">
+</p>
+
+| Get Ready | Game Over | Leaderboard |
+|:---:|:---:|:---:|
+| <img src="screenshots/get-ready.png" width="230" alt="Get Ready tap-to-play screen"> | <img src="screenshots/game-over.png" width="230" alt="Game over score card with medal, score and best"> | <img src="screenshots/leaderboard.png" width="230" alt="Leaderboard showing the top 10 scores"> |
+| Tap-to-play screen | Score card with medal + best | Top 10, sprite digits |
 
 ## Run it
 
