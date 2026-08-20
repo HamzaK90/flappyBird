@@ -1,0 +1,78 @@
+THIRD-PARTY NOTICES
+===================
+
+The source code of this project is MIT licensed (see LICENSE). The contents of
+the assets/ directory are NOT — they are third-party works, listed below with
+what is known about each. Read this file before redistributing this repository
+or publishing a packaged build.
+
+This project is an unaffiliated fan reimplementation. Flappy Bird and its
+artwork are the property of their original creator (Dong Nguyen / .Gears);
+no endorsement or affiliation is claimed.
+
+
+1. Gameplay sprites and sound effects
+-------------------------------------
+
+Source: https://github.com/samuelcust/flappy-bird-assets
+Licence: MIT
+
+Covers the bird animation frames, pipe sprites, base/ground strip, day and
+night backgrounds, the score digit sprites, and the sound effects
+wing.wav, point.wav, hit.wav, die.wav and swoosh.wav.
+
+The MIT licence of that pack requires its notice to travel with the files,
+so it is reproduced here in full:
+
+    MIT License
+
+    Copyright (c) 2019 Samuel Custodio
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+
+
+2. Theme music
+--------------
+
+Files: assets/sounds/Flappy Bird Theme Song.mp3
+       assets/sounds/Flappy Bird Theme Song.wav
+
+The theme from the original Flappy Bird. This project does not hold the rights
+to it and cannot license it onward. It is present for local development only.
+
+Anyone forking this repository or shipping a build should remove or replace
+these files.
+
+
+3. User interface art
+---------------------
+
+Files: okRec.png, menuRec.png, shareRec.png, startRec.png, startButton.png,
+       rateRec.png, scoreRec.png, leaderBoardButton.png, scoreCard.png,
+       gold.png, silver.png, bronze.png, iron.png, new.png,
+       musicOnButton.png, musicOffButton.png, soundOnButton.png,
+       soundOffButton.png, pauseButton.png, resumeButton.png,
+       dayButton.png, nightButton.png, flappybird.png, leaderboard.png,
+       gameover.png, getReadyMessage.png, tapMessage.png, message.png,
+       dot.png
+
+These were collected during development and their individual provenance was
+not tracked. They are derived from Flappy Bird's visual design. Treat them as
+unlicensed for redistribution and substitute your own art if you intend to
+publish a build.

@@ -5,6 +5,8 @@ day/dusk/night themes, pause, medals, a top-10 leaderboard, and a one-file
 desktop build. Developed incrementally: this repo's commit history is the
 build log.
 
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+
 <p align="center">
   <img src="screenshots/home.png" width="300" alt="Home page with the title, Play button, and leaderboard, rate, music and SFX controls">
 </p>
@@ -141,3 +143,12 @@ The big polish pass:
 Gameplay sprites and sounds (v4+): [samuelcust/flappy-bird-assets](https://github.com/samuelcust/flappy-bird-assets) (MIT).
 Later UI art (buttons, medals, score card) and the theme music were added
 during development — check their individual licences before redistributing.
+
+## Licence
+
+The source code is MIT licensed — see [LICENSE](LICENSE).
+
+The `assets/` folder is **not** covered by that licence. It contains
+third-party sprites and sounds under their own terms, including the original
+Flappy Bird theme music. See [NOTICE](NOTICE) before redistributing or
+publishing a build.
